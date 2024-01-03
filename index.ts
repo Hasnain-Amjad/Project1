@@ -1,91 +1,178 @@
 import inquirer from "inquirer";
 import chalk from "chalk";
-import chalkAnimation from "chalk-animation";
+//import chalkAnimation from "chalk-animation";
 import gradient from "gradient-string";
 
 const sleep = (ms = 1000) => new Promise((r) => setTimeout(r, ms));
 
-let randomNumber = Math.floor(Math.random() * 10 + 1);
-let actualAnswer = randomNumber;
-let numTries = 3;
-let play = true;
 let Welcome = async () => {
-  const rainbowTitle = chalkAnimation.rainbow("Let's play the Number Guessing game:");
-
   await sleep();
   console.log(
     gradient.passion(`
-  _____________________________________________________
-  |                                                   |
-  |                                                   |
-  |               _____________________               |
-  |               |                   |               |
-  |               |  NUMBER GUESSING  |               |
-  |               |       GAME        |               |
-  |               |___________________|               |
-  |                                                   |
-  |          GUESS THE NUMBER BETWEEN 1 TO 10         |
-  |                                                   |
-  |                   -------------                   |
-  |                   |   GUESS   |                   |
-  |                   -------------                   |
-  |                   | 1 | 2 | 3 |                   |
-  |                   -------------                   |
-  |                   | 4 | 5 | 6 |                   |
-  |                   -------------                   |
-  |                   | 7 | 8 | 9 |                   |
-  |                   -------------                   |
-  |                   ||||  10  |||                   |
-  |                   -------------                   |
-  |___________________________________________________|
+  _________________________________________________________
+  |                                                       |
+  |                                                       |
+  |                   _____________________               |
+  |                   |                   |               |
+  |                   |        ATM        |               |
+  |                   |___________________|               |
+  |                                                       |
+  |                    --------------------               |
+  |                   /   ----------     /|               |
+  |                  /   / #  #  # /    / |               |
+  |                 /   / #  #  # /    /  |               |
+  |                /   / #  #  # /    /   |               |
+  |               /    ---------     /    |               |
+  |               |-----------------|     |               |
+  |               |                 |     |               |
+  |               |                 |     |               |
+  |               |  -------------  |     |               |
+  |               |  |ATM Machine|  |     |               |
+  |               |  -------------  |     |               |
+  |               |                 |     |               |
+  |               |_________________|_____|               |
+  |_______________________________________________________|
   `)
   );
 
-  console.log(chalk.blue("Guess the number between 1 to 10:\n"));
+  console.log(chalk.blue("PIN: 1234"));
+  console.log(chalk.blue("Account Status: Dummy Account"));
+  console.log(chalk.blue("Card Inserted: Yes\n"));
+  
 };
 
-Welcome();
+ Welcome();
+class Account {
+  private balance: number;
 
-while (play) {
-  while (numTries > -1) {
-    const answer = await inquirer.prompt([
+  constructor(initialBalance: number) {
+    this.balance = initialBalance;
+  }
+
+  withdraw(amount: number): boolean {
+    if (amount > 0 && amount <= this.balance) {
+      this.balance -= amount;
+      return true;
+    }
+    return false;
+  }
+
+  deposit(amount: number): void {
+    if (amount > 0) {
+      this.balance += amount;
+    }
+  }
+
+  getBalance(): number {
+    return this.balance;
+  }
+}
+
+class ATM {
+  private account: Account;
+
+  constructor(account: Account) {
+    this.account = account;
+  }
+
+  withdraw(amount: number): boolean {
+    return this.account.withdraw(amount);
+  }
+
+  deposit(amount: number): void {
+    this.account.deposit(amount);
+  }
+
+  checkBalance(): number {
+    return this.account.getBalance();
+  }
+}
+
+async function getPIN(): Promise<string> {
+  const pinInput = await inquirer.prompt([
+    {
+      type: 'password',
+      name: 'pin',
+      message: 'Enter your PIN:',
+      mask: '*',
+      validate: (input) => /^\d{4}$/.test(input),
+    },
+  ]);
+  return pinInput.pin;
+}
+
+async function main() {
+  console.clear();
+  console.log(chalk.bgBlueBright.white.bold('Welcome to the Interactive ATM Simulation'));
+
+  const pin = await getPIN();
+
+  // Validate the PIN (For simplicity, using a fixed PIN)
+if (pin !== '1234') {
+    console.log(chalk.bgRed.white.bold('Incorrect PIN. Exiting.'));
+    process.exit(1);
+}
+
+  console.log(chalk.bgGreen.white.bold('PIN Verified. Access Granted.'));
+
+  const userAccount = new Account(1000);
+  const atm = new ATM(userAccount);
+
+  while (true) {
+    const action = await inquirer.prompt([
       {
-        name: "YourGuess",
-        message: "",
-        type: "number",
+        type: 'list',
+        name: 'action',
+        message: 'Choose an action:',
+        choices: ['Check Balance', 'Deposit', 'Withdraw', 'Exit'],
       },
     ]);
 
-    if (answer.YourGuess === actualAnswer) {
-      console.log(chalk.green("Hurray! Your guess is correct. Game ends"));
-      numTries = 0;
-    } else {
-      console.log(chalk.red("Your guess is incorrect."));
-      console.log(`You have ${numTries} ${numTries > 1 ? "tries" : "try"} left.`);
+    switch (action.action) {
+      case 'Check Balance':
+        console.log(chalk.bgCyan.white('Balance:', atm.checkBalance()));
+        break;
 
-      if (actualAnswer > answer.YourGuess) {
-        console.log(chalk.yellow("Think Higher"));
-      } else {
-        console.log(chalk.yellow("Think Lower"));
-      }
+      case 'Deposit':
+        const depositAmount = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'amount',
+            message: 'Enter deposit amount:',
+            validate: (input) => !isNaN(input) && parseFloat(input) > 0,
+          },
+        ]);
+        atm.deposit(parseFloat(depositAmount.amount));
+        console.log(chalk.bgGreen.white('Deposit successful. New balance:', atm.checkBalance()));
+        break;
+
+      case 'Withdraw':
+        const withdrawAmount = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'amount',
+            message: 'Enter withdrawal amount:',
+            validate: (input) => !isNaN(input) && parseFloat(input) > 0,
+          },
+        ]);
+
+        const withdrawalResult = atm.withdraw(parseFloat(withdrawAmount.amount));
+        if (withdrawalResult) {
+          console.log(chalk.bgGreen.white('Withdrawal successful. New balance:', atm.checkBalance()));
+        } else {
+          console.log(chalk.bgRed.white('Insufficient funds'));
+        }
+        break;
+
+      case 'Exit':
+        console.log(chalk.bgYellow.black('Exiting ATM. Goodbye!'));
+        process.exit(0);
+
+      default:
+        console.log(chalk.bgRed.white('Invalid action.'));
     }
-
-    numTries--;
-  }
-
-  const playAgainAnswer = await inquirer.prompt([
-    {
-      name: "playAgain",
-      message: "Do you wanna play again?",
-      type: "confirm",
-    },
-  ]);
-  if (playAgainAnswer.playAgain) {
-    numTries = 3;
-    randomNumber = Math.floor(Math.random() * 10 + 1);
-    actualAnswer = randomNumber;
-  } else {
-    console.log(chalk.bgHex('#333').white("Exiting game..."));
-    play = false;
   }
 }
+
+// Run the main function
+main();
